@@ -58,7 +58,7 @@ app.route('/api/users')
 app.post('/api/users/:_id/exercises',(request, response) => {
   const description = request.body.description;
   const duration = parseInt(request.body.duration);
-  const date = request.body.date? 'Mon Jan 01 1990':'Thu Jun 30 2022';
+  const date = request.body.date? 'Mon Jan 01 1990':(new Date).toDateString();
   const id = request.params._id;
 
 
@@ -97,7 +97,7 @@ app.get('/api/users/:_id/logs?',(request,response)=>{
           console.log(logs);
     
           const filteredLogs = logs.filter((log) => {
-            const formattedLogDate = (new Date(log.date)).toISOString().split('T')[0]
+            const formattedLogDate = (new Date(log.date)).toDateString()
             console.log(formattedLogDate);
             return true
           })
