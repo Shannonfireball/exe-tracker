@@ -4,27 +4,15 @@ const cors = require('cors')
 require('dotenv').config()
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser'); 
-const Schema = mongoose.Schema;
-const mySecret = 'mongodb+srv://mongotut123:testing1234@cluster0.sisrp.mongodb.net/test?retryWrites=true&w=majority'
+const { parse } = require('dotenv');
 
+
+const User = require('./model/user');
 app.use(bodyParser.urlencoded({ extended:false }));
-mongoose.connect(mySecret,{ useUnifiedTopology:true, useNewUrlParser:true })
 
-const userSchema = new Schema({
-  username:{
-    type:String,
-    require:true
-  },
-  log: [{
-    date:String,
-    duration:Number,
-    description:String
-    
-  }],
-  count:Number
-});
+mongoose.connect(process.env.my_se,{ useUnifiedTopology:true, useNewUrlParser:true })
 
-let User = mongoose.model("User", userSchema);
+
 
 
 app.use(cors())
@@ -35,22 +23,14 @@ app.get('/', (req, res) => {
 
 
 app.route('/api/users')
-   .post( (request, response) => {
+   .post(async (request, response) => {
   const username  = request.body.username;
-  const user =  new User({ username , count:0 })
-  user.save((error,data) => {
-    if(error){
-      response.json({ error:error})
-    }
-    response.json(data);
-  })
+  const result = await User.create({username}).exec();
+  response.json({result});
 })
-.get((request,response) => {
-  User.find((error,data) => {
-   if(data){
-     response.json(data);
-   }   
-  })
+.get(async (request,response) => {
+  const result = await User.find();
+  response.json(result);
   
 })
 
@@ -58,7 +38,7 @@ app.route('/api/users')
 app.post('/api/users/:_id/exercises',(request, response) => {
   const description = request.body.description;
   const duration = parseInt(request.body.duration);
-  const date = request.body.date? 'Mon Jan 01 1990':(new Date).toDateString();
+  const date = request.body.date? 'Mon Jan 01 1990':"Fri Jul 01 2022";
   const id = request.params._id;
 
 
@@ -85,32 +65,83 @@ app.post('/api/users/:_id/exercises',(request, response) => {
   
 });
 
-app.get('/api/users/:_id/logs?',(request,response)=>{
+app.get('/api/users/:_id/logs',async (request,response)=>{
   const { from, to, limit} = request.query
+  const id = request.params._id;
   console.log(from, to, limit );
 
   
-  User.findById(request.params._id, (error, user) => {
-      if(user) {
-      if(from||to||limit) {
-          const logs = user.log;
-          console.log(logs);
-    
-          const filteredLogs = logs.filter((log) => {
-            const formattedLogDate = (new Date(log.date)).toDateString()
-            console.log(formattedLogDate);
-            return true
-          })
-          
-          console.log(filteredLogs);
-          const slicedLogs = limit ? filteredLogs.slice(0, limit) : filteredLogs;
-          user.log = slicedLogs;
-          console.log(slicedLogs);
-      }
-      response.json(user);
-    }
-  })
+  const result = await User.find({ _id:id }).limit(limit).exec();
+  response.json(result);
 })
+
+
+
+
+
+
+// app.get('/api/users/:_id/logs?',(request,response)=>{
+
+
+  
+//   User.findById(request.params._id, (error, user) => {
+      
+//       let responseObject = user;
+    
+//       if(request.query.from || request.query.to || request.query.limit){
+//       if(request.query.from || request.query.to){
+//         const fromDate = new Date(0);
+//         const toDate = new Date();
+//         if(request.query.from){
+//           fromDate = new Date(request.query.from);
+//         }
+//         if(request.query.to){
+//           toDate = new Date(request.query.to);
+//         }
+//         fromDate = fromDate.getTime();
+//         toDate = toDate.getTime();
+
+//         responseObject.log = responseObject.log.filter((log) =>{
+//           let logDate = new Date(log.date).getTime();
+
+//           return logDate >= fromDate && logDate <= toDate;
+//         })
+        
+//       }
+//       if(request.query.limit) {  
+//         responseObject.log = responseObject.log.slice(0,request.query.limit);
+//       }
+//   }    
+
+
+//       responseObject['count'] = responseObject.log.length
+//       response.json(
+//         {
+//           "username": responseObject.username,
+//           "count": responseObject.count,
+//           "_id": responseObject._id,
+//           "log": responseObject.log
+// });
+      
+
+    
+//   })
+// })
+
+
+app.all('*',(request,response) => {
+
+  response.status(404);
+  if(request.accepts('html')){
+      response.json( {error:"404 not found"});
+  } else if(request.accepts('json')){
+      response.json( {error:"404 not found"});
+  } else {
+      response.type('txt').send('404 not found');
+  }
+
+});
+
 
 
 const listener = app.listen(process.env.PORT || 3000, () => {
